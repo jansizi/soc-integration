@@ -1,9 +1,19 @@
 package services
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"time"
 
 	"github.com/jansizi/soc-integration/internal/models"
+)
+
+const (
+	TheHiveURL    = "http://192.168.150.134:9000/thehive"
+	TheHiveAPIKey = "HVpVvsiZSEAdvIulVdLYZxSOoB9MfKMS"
 )
 
 type AlertService interface {
@@ -19,18 +29,66 @@ func NewAlertService() AlertService {
 
 // ProcessWazuhAlert - ฟังก์ชันหลักในการทำงาน
 func (s *alertService) ProcessWazuhAlert(alert models.WazuhAlert) error {
-	// Business Logic อยู่ตรงนี้ (การคัดแยกข้อมูลสวยๆ)
-	fmt.Println("------------------------------------------------")
-	fmt.Printf("🔥 SERVICE PROCESSING: Level %d Alert\n", alert.Rule.Level)
-	fmt.Printf("📌 Title: %s\n", alert.Rule.Description)
-	fmt.Printf("💻 Agent: %s (%s)\n", alert.Agent.Name, alert.Agent.IP)
+	fmt.Print("Processing Alert: %s (level %d)\n", alert.Rule.Description, alert.Rule.Level)
+	// 1. แปลง WazuhAlert เป็น TheHiveCase
+	caseTitle := fmt.Sprintf("[Wazuh] %s", alert.Rule.Description)
+	caseDesc := fmt.Sprintf("Alert from agent %s (IP: %s)\n\nFull Log:\n%s", alert.Agent.Name, alert.Agent.IP, alert.FullLog)
 
-	if alert.Data.SrcIP != "" {
-		fmt.Printf("😈 Attacker IP: %s\n", alert.Data.SrcIP)
+	hiveSeverity := 2
+
+	if alert.Rule.Level <= 4 {
+		hiveSeverity = 2
+	} else if alert.Rule.Level >= 10 {
+		hiveSeverity = 3
 	}
-	fmt.Println("------------------------------------------------")
+	newCase := models.TheHiveCase{
+		Title:       caseTitle,
+		Description: caseDesc,
+		Serverity:   hiveSeverity,
+		StartDate:   time.Now().UnixMilli(),
+		Tags:        []string{"wazuh", "automated"},
+		TLP:         2,
+		PAP:         2,
+		Status:      "Open",
+		Owner:       "admin",
+	}
 
-	// TODO: เดี๋ยวเราจะเติมโค้ดเรียก TheHive API ตรงนี้ในอนาคต
+	err := s.createTheHiveCase(newCase)
+	if err != nil {
+		fmt.Print("Failed to create case: %v\n", err)
+	}
+
+	fmt.Print("\nCase created in TheHive successfully!")
+	return nil
+}
+
+func (s *alertService) createTheHiveCase(theHiveCase models.TheHiveCase) error {
+	jsonData, err := json.Marshal(theHiveCase)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", TheHiveURL+"/api/case", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+TheHiveAPIKey)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, _ := io.ReadAll(resp.Body)
+	responseString := string(bodyBytes)
+
+	if resp.StatusCode != http.StatusCreated {
+		return fmt.Errorf("TheHive API returned status: %s", resp.Status, responseString)
+	}
 
 	return nil
 }
