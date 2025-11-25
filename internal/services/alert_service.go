@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	TheHiveURL    = "http://192.168.150.134:9000/thehive"
-	TheHiveAPIKey = "HVpVvsiZSEAdvIulVdLYZxSOoB9MfKMS"
+	TheHiveURL     = "http://192.168.150.134:9000/thehive"
+	TheHiveAPIKey  = "HVpVvsiZSEAdvIulVdLYZxSOoB9MfKMS"
+	CortexServerID = "cortex1"
 )
 
 type AlertService interface {
@@ -64,6 +65,7 @@ func (s *alertService) ProcessWazuhAlert(alert models.WazuhAlert) error {
 
 	if alert.Data.SrcIP != "" {
 		fmt.Print("Found Attacker IP", alert.Data.SrcIP)
+
 		obs := models.TheHiveObservable{
 			DataType: "ip",
 			Data:     alert.Data.SrcIP,
@@ -72,11 +74,20 @@ func (s *alertService) ProcessWazuhAlert(alert models.WazuhAlert) error {
 			Tags:    []string{"attacker", "wazuh-detected"},
 			Message: "Detected Source IP from Wazuh Alert",
 		}
-		err = s.createTheHiveObservable(caseID, obs)
+
+		artifactID, err := s.createTheHiveObservable(caseID, obs)
 		if err != nil {
-			fmt.Println("Observable added successfully")
-		} else {
 			fmt.Print("Failed to add Observable: %v\n", err)
+		} else {
+			fmt.Println("Observable added successfully")
+			analyzerID := "CyberCrime-Tracker_1_0"
+			fmt.Printf("Auto-running analyzer: %s...\n", analyzerID)
+			err := s.runAnalyzer(artifactID, analyzerID)
+			if err != nil {
+				fmt.Printf("Failed to run analyzer: %v\n", err)
+			} else {
+				fmt.Println("Analyzer started successfully")
+			}
 		}
 	}
 	return nil
@@ -121,13 +132,61 @@ func (s *alertService) createTheHiveCase(theHiveCase models.TheHiveCase) (string
 	return "", fmt.Errorf("could not find Case ID in response")
 }
 
-func (s *alertService) createTheHiveObservable(caseID string, observable models.TheHiveObservable) error {
+func (s *alertService) createTheHiveObservable(caseID string, observable models.TheHiveObservable) (string, error) {
 	jsonData, err := json.Marshal(observable)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	url := fmt.Sprintf("%s/api/case/%s/artifact", TheHiveURL, url.PathEscape(caseID))
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+TheHiveAPIKey)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode != 200 && resp.StatusCode != 201 {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("Status: %s, reson: %s", resp.Status, string(body))
+	}
+
+	var responseArray []map[string]interface{}
+	if err := json.Unmarshal(bodyBytes, &responseArray); err == nil && len(responseArray) > 0 {
+		if id, ok := responseArray[0]["id"].(string); ok {
+			return id, nil
+		}
+	}
+
+	var responseObj map[string]interface{}
+	if err := json.Unmarshal(bodyBytes, &responseObj); err == nil {
+		if id, ok := responseObj["id"].(string); ok {
+			return id, nil
+		}
+	}
+
+	return "", nil
+}
+
+func (s *alertService) runAnalyzer(artifactID string, analyzerID string) error {
+	payload := map[string]string{
+		"cortexId":   CortexServerID,
+		"artifactId": artifactID,
+		"analyzerId": analyzerID,
+	}
+	jsonData, _ := json.Marshal(payload)
+
+	url := TheHiveURL + "/api/connector/cortex/job"
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -145,7 +204,7 @@ func (s *alertService) createTheHiveObservable(caseID string, observable models.
 
 	if resp.StatusCode != 200 && resp.StatusCode != 201 {
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("Status: %s, reson: %s", resp.Status, string(body))
+		return fmt.Errorf("status: %s, reason: %s", resp.Status, string(body))
 	}
 
 	return nil
