@@ -21,7 +21,7 @@ type MISPService interface {
 type MISPservice struct {
 	Response struct {
 		Attribute []struct {
-			value string `json:"value"`
+			Value string `json:"value"`
 			Type  string `json:"type"`
 		} `json:"Attribute"`
 	} `json:"response"`
@@ -46,7 +46,7 @@ func (s *MISPservice) CheckIP(ip string) (bool, error) {
 		"type":         "ip-dst",
 		"value":        ip,
 	}
-	jsonData, err := json.Marshal(payload)
+	jsonData, _ := json.Marshal(payload)
 
 	url := fmt.Sprintf("%s/attributes/restSearch", mispURL)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
@@ -84,13 +84,13 @@ func (s *MISPservice) CheckIP(ip string) (bool, error) {
 	// }
 	var mispResp MISPservice
 	if err := json.Unmarshal(bodyBytes, &mispResp); err != nil {
-		fmt.Printf("❌ MISP JSON Parse Error: %v\n", err)
+		fmt.Printf("MISP JSON Parse Error: %v\n", err)
 		// ถ้าแกะไม่ออก ให้ถือว่าไม่เจอไปก่อน (กันโปรแกรมพัง)
 		return false, nil
 	}
 
 	if len(mispResp.Response.Attribute) > 0 {
-		fmt.Printf("✅ MISP FOUND MATCH! (Found %d attributes)\n", len(mispResp.Response.Attribute))
+		fmt.Printf("MISP FOUND MATCH! (Found %d attributes)\n", len(mispResp.Response.Attribute))
 		return true, nil
 	}
 

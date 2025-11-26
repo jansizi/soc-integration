@@ -35,7 +35,7 @@ func NewAlertService(misp MISPService) AlertService {
 
 // ProcessWazuhAlert - ฟังก์ชันหลักในการทำงาน
 func (s *alertService) ProcessWazuhAlert(alert models.WazuhAlert) error {
-	fmt.Print("Processing Alert: %s (level %d)\n", alert.Rule.Description, alert.Rule.Level)
+	fmt.Printf("Processing Alert: %s (level %d)\n", alert.Rule.Description, alert.Rule.Level)
 	// 1. แปลง WazuhAlert เป็น TheHiveCase
 	caseTitle := fmt.Sprintf("[Wazuh] %s", alert.Rule.Description)
 	caseDesc := fmt.Sprintf("Alert from agent %s (IP: %s)\n\nFull Log:\n%s", alert.Agent.Name, alert.Agent.IP, alert.FullLog)
@@ -53,7 +53,7 @@ func (s *alertService) ProcessWazuhAlert(alert models.WazuhAlert) error {
 	if alert.Data.SrcIP != "" {
 		isMalicious, err := s.mispService.CheckIP(alert.Data.SrcIP)
 		if err != nil {
-			fmt.Print("Error checking IP in MISP: %v\n", err)
+			fmt.Printf("Error checking IP in MISP: %v\n", err)
 		}
 		if isMalicious {
 			fmt.Println("🚨 ALERT! IP found in MISP Database! Escalating priority...")
@@ -76,7 +76,7 @@ func (s *alertService) ProcessWazuhAlert(alert models.WazuhAlert) error {
 
 	caseID, err := s.createTheHiveCase(newCase)
 	if err != nil {
-		fmt.Print("Failed to create case: %v\n", err)
+		fmt.Printf("Failed to create case: %v\n", err)
 		return err
 	}
 	fmt.Printf("\nCase created! ID: %s\n", caseID)
@@ -95,7 +95,7 @@ func (s *alertService) ProcessWazuhAlert(alert models.WazuhAlert) error {
 
 		artifactID, err := s.createTheHiveObservable(caseID, obs)
 		if err != nil {
-			fmt.Print("Failed to add Observable: %v\n", err)
+			fmt.Printf("Failed to add Observable: %v\n", err)
 		} else {
 			fmt.Println("Observable added successfully")
 			analyzerID := "CyberCrime-Tracker_1_0"
@@ -177,7 +177,7 @@ func (s *alertService) createTheHiveObservable(caseID string, observable models.
 
 	if resp.StatusCode != 200 && resp.StatusCode != 201 {
 		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("Status: %s, reson: %s", resp.Status, string(body))
+		return "", fmt.Errorf("atatus: %s, reason: %s", resp.Status, string(body))
 	}
 
 	var responseArray []map[string]interface{}
