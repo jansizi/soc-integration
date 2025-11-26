@@ -11,7 +11,7 @@ import (
 
 const (
 	mispURL    = "https://192.168.150.134:8443"
-	mispAPIKey = "7AdXAGIrUlIIhlpQhsat8u5lpjXVxbRDGFAC4Pmz"
+	mispAPIKey = "ZGZLNuc97A2Y9TcBWTe5ZNUx2YDxnpBgxONQGtoQ"
 )
 
 type MISPService interface {
@@ -70,18 +70,6 @@ func (s *MISPservice) CheckIP(ip string) (bool, error) {
 
 	bodyBytes, _ := io.ReadAll(resp.Body)
 
-	// var responseMap map[string]interface{}
-	// if err := json.Unmarshal(bodyBytes, &responseMap); err != nil {
-
-	// 	return false, nil
-	// }
-
-	// if responseMap, ok := responseMap["reponse"].(map[string]interface{}); ok {
-	// 	if attr, ok := responseMap["Attribute"].([]interface{}); ok && len(attr) > 0 {
-
-	// 		return true, nil
-	// 	}
-	// }
 	var mispResp MISPservice
 	if err := json.Unmarshal(bodyBytes, &mispResp); err != nil {
 		fmt.Printf("MISP JSON Parse Error: %v\n", err)
@@ -94,5 +82,6 @@ func (s *MISPservice) CheckIP(ip string) (bool, error) {
 		return true, nil
 	}
 
+	fmt.Println("⚪ MISP Not Found")
 	return false, nil
 }

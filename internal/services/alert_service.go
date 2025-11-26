@@ -56,7 +56,7 @@ func (s *alertService) ProcessWazuhAlert(alert models.WazuhAlert) error {
 			fmt.Printf("Error checking IP in MISP: %v\n", err)
 		}
 		if isMalicious {
-			fmt.Println("🚨 ALERT! IP found in MISP Database! Escalating priority...")
+			fmt.Println("ALERT! IP found in MISP Database! Escalating priority...")
 			tags = append(tags, "MISP-DETECTED", "THREAT-INTEL")
 			hiveSeverity = 3
 		}
