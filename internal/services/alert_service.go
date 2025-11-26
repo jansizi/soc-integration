@@ -22,11 +22,15 @@ type AlertService interface {
 	ProcessWazuhAlert(alert models.WazuhAlert) error
 }
 
-type alertService struct{}
+type alertService struct {
+	mispService MISPService
+}
 
 // NewAlertService - Constructor (เหมือน Dependency Injection)
-func NewAlertService() AlertService {
-	return &alertService{}
+func NewAlertService(misp MISPService) AlertService {
+	return &alertService{
+		mispService: misp,
+	}
 }
 
 // ProcessWazuhAlert - ฟังก์ชันหลักในการทำงาน
@@ -44,12 +48,26 @@ func (s *alertService) ProcessWazuhAlert(alert models.WazuhAlert) error {
 		hiveSeverity = 3
 	}
 
+	tags := []string{"wazuh", "automated", alert.Agent.Name}
+
+	if alert.Data.SrcIP != "" {
+		isMalicious, err := s.mispService.CheckIP(alert.Data.SrcIP)
+		if err != nil {
+			fmt.Print("Error checking IP in MISP: %v\n", err)
+		}
+		if isMalicious {
+			fmt.Println("🚨 ALERT! IP found in MISP Database! Escalating priority...")
+			tags = append(tags, "MISP-DETECTED", "THREAT-INTEL")
+			hiveSeverity = 3
+		}
+
+	}
 	newCase := models.TheHiveCase{
 		Title:       caseTitle,
 		Description: caseDesc,
 		Serverity:   hiveSeverity,
 		StartDate:   time.Now().UnixMilli(),
-		Tags:        []string{"wazuh", "automated"},
+		Tags:        tags,
 		TLP:         2,
 		PAP:         2,
 		Status:      "Open",
@@ -90,6 +108,7 @@ func (s *alertService) ProcessWazuhAlert(alert models.WazuhAlert) error {
 			}
 		}
 	}
+
 	return nil
 }
 

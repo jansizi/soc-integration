@@ -1,0 +1,17 @@
+{
+  "timestamp": "2025-11-20T10:00:00",
+  "rule": {
+    "level": 10,
+    "description": "SSH Brute Force Detected",
+    "id": "5716"
+  },
+  "agent": {
+    "id": "001",
+    "name": "ubuntu-srv",
+    "ip": "192.168.1.5"
+  },
+  "data": {
+    "srcip": "1.2.3.4"
+  },
+  "full_log": "Failed password for root from 1.2.3.4 port 22 ssh2"
+}

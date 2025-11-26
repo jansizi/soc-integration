@@ -12,7 +12,9 @@ import (
 func main() {
 	// 1. Setup Dependencies (DI)
 	// สร้าง Service
-	alertService := services.NewAlertService()
+	mispService := services.NewMISPService()
+	alertService := services.NewAlertService(mispService)
+
 	// สร้าง Handler โดยยัด Service เข้าไป
 	wazuhHandler := handlers.NewWazuhHandler(alertService)
 
