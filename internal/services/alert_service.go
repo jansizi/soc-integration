@@ -50,7 +50,7 @@ func (s *alertService) ProcessWazuhAlert(alert models.WazuhAlert) error {
 
 	tags := []string{"wazuh", "automated", alert.Agent.Name}
 
-	if alert.Data.SrcIP != "" {
+	if alert.Data.SrcIP != "" && alert.Data.SrcIP >= "5" {
 		isMalicious, err := s.mispService.CheckIP(alert.Data.SrcIP)
 		if err != nil {
 			fmt.Printf("Error checking IP in MISP: %v\n", err)
