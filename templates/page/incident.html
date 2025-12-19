@@ -1,12 +1,60 @@
 {{define "content"}}
-<div class="p-6">
-    <header class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-800">INCIDENTS RESPONSE</h1>
-        <p class="text-gray-500">Manage and respond to security alerts.</p>
+<div class="container-fluid p-4">
+    <header class="mb-4">
+        <h1 class="page-title">INCIDENTS RESPONSE</h1>
+        <p class="page-subtitle">Manage and respond to security alerts.</p>
     </header>
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-96 flex items-center justify-center text-gray-400">
-        <p>Incident Table will be here...</p>
+    {{if .Error}}
+    <div class="alert alert-danger" role="alert">
+        <strong>Connection Error:</strong> {{.Error}}
+    </div>
+    {{end}}
+
+    <div class="card-modern">
+        <div class="card-body p-0 overflow-hidden rounded-3">
+            <div class="table-responsive">
+                <table class="table table-modern align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">Case ID</th>
+                            <th scope="col">Title</th>
+                            <th scope="col">Severity</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Date</th>
+                            <th scope="col" class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .Cases}}
+                        <tr>
+                            <td class="fw-bold text-primary">#{{.CaseId}}</td>
+                            <td class="fw-medium">{{.Title}}</td>
+                            <td>
+                                <span class="badge badge-pill {{if eq .Severity 4}}badge-soft-dark{{else if eq .Severity 3}}badge-soft-danger{{else if eq .Severity 2}}badge-soft-warning{{else}}badge-soft-success{{end}}">
+                                    {{if eq .Severity 4}}Critical{{else if eq .Severity 3}}High{{else if eq .Severity 2}}Medium{{else}}Low{{end}}
+                                </span>
+                            </td>
+                            <td>{{.Status}}</td>
+                            <td class="text-muted">{{.Date}}</td>
+                            <td class="text-end">
+                                <a href="{{.Link}}" target="_blank" class="btn btn-sm btn-outline-primary">View</a>
+                            </td>
+                        </tr>
+                        {{else}}
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">No incidents found.</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Pagination -->
+        <div class="card-footer">
+             {{template "pagination" .Pagination}}
+        </div>
     </div>
 </div>
 {{end}}

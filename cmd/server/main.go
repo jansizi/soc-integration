@@ -14,10 +14,12 @@ func loadTemplates() multitemplate.Renderer {
 	r.AddFromFiles("dashboard",
 		"templates/layouts/base.html",
 		"templates/page/dashboard.html",
+		"templates/layouts/pagination.html",
 	)
 	r.AddFromFiles("incident",
 		"templates/layouts/base.html",
 		"templates/page/incident.html",
+		"templates/layouts/pagination.html",
 	)
 	return r
 }
@@ -29,25 +31,18 @@ func main() {
 
 	// สร้าง Handler โดยยัด Service เข้าไป
 	wazuhHandler := handlers.NewWazuhHandler(alertService)
+	pageHandler := handlers.NewPageHandler(alertService)
 
 	// 2. Setup Router
 	r := gin.Default()
+	// Serve Static Files (CSS, JS, Images)
+	r.Static("/bundle", "./bundle")
+
 	// โหลด HTML Template
 	r.HTMLRender = loadTemplates()
 
-	r.GET("/", func(c *gin.Context) {
-
-		c.HTML(200, "dashboard", gin.H{
-			"title":  "Dashboard Overview",
-			"active": "dashboard",
-		})
-	})
-	r.GET("/alerts", func(c *gin.Context) {
-		c.HTML(200, "incident", gin.H{
-			"title":  "Incidents Response",
-			"active": "incident",
-		})
-	})
+	r.GET("/", pageHandler.Dashboard)
+	r.GET("/alerts", pageHandler.Incidents)
 	r.GET("/favicon.ico", func(c *gin.Context) {
 		c.Status(204)
 	})

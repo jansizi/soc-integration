@@ -4,58 +4,57 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SOC Integration</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .text-theme-red { color: #8B0000; }
-        .border-theme-red { border-color: #8B0000; }
-    </style>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/bundle/CSS/style.css">
 </head>
-<body class="bg-gray-50 font-sans flex h-screen overflow-hidden">
+<body class="d-flex">
 
-    <nav class="w-64 bg-gray-900 text-white flex flex-col shadow-lg transition-all duration-300">
-        
-        <div class="h-16 flex items-center justify-center border-b border-gray-700 bg-gray-800">
-            <h1 class="text-xl font-bold tracking-wider text-blue-400">SOC MONITOR</h1>
-        </div>
-
-        <div class="flex-1 overflow-y-auto py-4">
-            <ul class="space-y-1">
-                <li>
-                    <a href="/" class="flex items-center px-6 py-3 {{ if eq .active "dashboard" }}bg-gray-800 text-white border-blue-500{{ else }}text-gray-300 hover:bg-gray-800 hover:text-white border-transparent hover:border-blue-500{{ end }} border-l-4 transition-colors">
-                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
-                        Dashboard
-                    </a>
-                </li>
-
-                <li>
-                    <a href="/alerts" class="flex items-center px-6 py-3 {{ if eq .active "incidents" }}bg-gray-800 text-white border-red-500{{ else }}text-gray-300 hover:bg-gray-800 hover:text-white border-transparent hover:border-red-500{{ end }} border-l-4 transition-colors">
-                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                        incidents
-                    </a>
-                </li>
+    <!-- Sidebar -->
+    <div class="d-flex flex-column flex-shrink-0 p-3 sidebar">
+        <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none justify-content-center w-100 border-bottom pb-3">
+            <span class="fs-4 fw-bold text-info">SOC MONITOR</span>
+        </a>
+        <ul class="nav nav-pills flex-column mb-auto">
+            <li class="nav-item">
+                <a href="/" class="nav-link {{ if eq .active "dashboard" }}active{{ end }}" aria-current="page">
+                    <i class="fa-solid fa-gauge me-2"></i>
+                    Dashboard
+                </a>
+            </li>
+            <li>
+                <a href="/alerts" class="nav-link {{ if eq .active "incident" }}active{{ end }}">
+                    <i class="fa-solid fa-bell me-2"></i>
+                    Incidents
+                </a>
+            </li>
+        </ul>
+        <hr>
+        <div class="dropdown">
+            <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
+                <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold me-2 shadow-sm" style="width: 32px; height: 32px;">A</div>
+                <strong>Admin User</strong>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUser1">
+                <li><a class="dropdown-item" href="#">Profile</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="#">Sign out</a></li>
             </ul>
         </div>
+    </div>
 
-        <div class="p-4 border-t border-gray-700 bg-gray-800">
-            <div class="flex items-center">
-                <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
-                    A
-                </div>
-                <div class="ml-3">
-                    <p class="text-sm font-medium text-white">Admin User</p>
-                    <p class="text-xs text-gray-400">View Profile</p>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <div class="flex-1 flex flex-col overflow-hidden">
+    <!-- Main Content -->
+    <div class="content">
         {{template "content" .}}
     </div>
 
-    <script>
-
-    </script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     {{block "scripts" .}}{{end}}
 </body>
 </html>

@@ -1,120 +1,132 @@
 {{define "content"}}
-  <header class="flex justify-between items-center p-6 border-b">
-    <h1 id="main-page-title" class="text-2xl font-bold">DASHBOARD</h1>
-  </header>
-  <main class="p-6 overflow-auto">
-    <header class="bg-white shadow-sm pt-6 px-8 z-10">
-            <h1  id="table-title" class="text-2xl font-bold text-gray-800 mb-6">Endpoint Status</h1>
-            <div class="flex space-x-8">
-                <button onclick="switchTab('endpoint')" id="tab-endpoint" class="pb-3 border-b-2 border-theme-red text-theme-red font-bold flex items-center gap-2 transition-all">
-                    <i class="fa-solid fa-desktop"></i> Endpoint Status
-                </button>
-                <button onclick="switchTab('alert')" id="tab-alert" class="pb-3 border-b-2 border-transparent text-gray-500 font-medium hover:text-gray-700 flex items-center gap-2 transition-all">
-                    <i class="fa-solid fa-bell"></i> Alert Monitor
-                </button>
+<div class="container-fluid p-4">
+    <header class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+        <h1 class="page-title" id="main-page-title">DASHBOARD</h1>
+    </header>
+
+    <div class="card-modern mb-4">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold text-dark" id="table-title">Endpoint Status</h5>
+                <ul class="nav nav-tabs nav-tabs-modern card-header-tabs" id="dashboardTabs">
+                    <li class="nav-item">
+                        <button onclick="switchTab('endpoint')" id="tab-endpoint" class="nav-link active" aria-current="true">
+                            <i class="fa-solid fa-desktop me-1"></i> Endpoint Status
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button onclick="switchTab('alert')" id="tab-alert" class="nav-link">
+                            <i class="fa-solid fa-bell me-1"></i> Alert Monitor
+                        </button>
+                    </li>
+                </ul>
             </div>
-        </header>
-
-        <div class="flex-1 overflow-y-auto p-8 space-y-6">
-
-            <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div class="flex flex-col md:flex-row items-center gap-8 h-64">
-                    
-                    <div class="w-full md:w-1/3 h-full flex justify-center relative">
+        </div>
+        <div class="card-body">
+            <div class="row g-4">
+                <!-- Chart Section -->
+                <div class="col-md-4 text-center position-relative">
+                    <div style="height: 250px; position: relative;">
                         <canvas id="mainChart"></canvas>
-                        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                            <span class="text-3xl font-bold text-gray-800" id="center-number">95%</span>
-                            <span class="text-xs text-gray-500 uppercase" id="center-label">Online</span>
+                        <div class="position-absolute top-50 start-50 translate-middle text-center" style="pointer-events: none;">
+                            <div class="h2 fw-bold mb-0" id="center-number">95%</div>
+                            <div class="small text-muted text-uppercase" id="center-label">Online</div>
                         </div>
                     </div>
-
-                    <div class="w-full md:w-2/3 grid grid-cols-2 gap-4" id="summary-cards">
-                        </div>
-                </div>
-            </section>
-
-            <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-wrap gap-4 justify-between items-end">
-                <div class="flex flex-wrap gap-3 items-end">
-                    <div>
-                        <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">From</label>
-                        <input type="datetime-local" class="block w-40 mt-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">To</label>
-                        <input type="datetime-local" class="block w-40 mt-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none">
-                    </div>
-                    <button class="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white text-sm font-medium rounded-lg transition shadow-md">
-                        <i class="fa-solid fa-filter mr-1"></i> Filter
-                    </button>
                 </div>
                 
-                <button onclick="exportReport()" class="px-5 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition shadow-md flex items-center">
-                    <i class="fa-solid fa-file-export mr-2"></i> Export Report
-                </button>
-            </section>
-
-            <section class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                    <h3 class="font-bold text-gray-700" id="table-title">Endpoint History</h3>
-                    <span class="text-xs text-gray-400">Showing latest 5 records</span>
+                <!-- Summary Cards -->
+                <div class="col-md-8">
+                    <div class="row g-3" id="summary-cards">
+                        <!-- Cards will be injected here by JS -->
+                    </div>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left text-gray-600">
-                        <thead class="bg-gray-50 text-gray-700 uppercase text-xs font-semibold tracking-wider">
-                            <tr id="table-header">
-                                </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100" id="table-body">
-                            </tbody>
-                    </table>
-                </div>
-                <div class="px-6 py-3 bg-gray-50 border-t border-gray-200 flex justify-end gap-2">
-                    <button class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 text-xs shadow-sm">Previous</button>
-                    <button class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 text-xs shadow-sm">Next</button>
-                </div>
-            </section>
-
+            </div>
         </div>
-  </main>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="card-modern mb-4">
+        <div class="card-body d-flex flex-wrap justify-content-between align-items-end gap-3">
+            <div class="d-flex flex-wrap gap-3 align-items-end">
+                <div>
+                    <label class="form-label small fw-bold text-muted text-uppercase mb-1">From</label>
+                    <input type="datetime-local" class="form-control form-control-sm">
+                </div>
+                <div>
+                    <label class="form-label small fw-bold text-muted text-uppercase mb-1">To</label>
+                    <input type="datetime-local" class="form-control form-control-sm">
+                </div>
+                <button class="btn btn-dark btn-sm">
+                    <i class="fa-solid fa-filter me-1"></i> Filter
+                </button>
+            </div>
+            <button onclick="exportReport()" class="btn btn-success btn-sm">
+                <i class="fa-solid fa-file-export me-1"></i> Export Report
+            </button>
+        </div>
+    </div>
+
+    <!-- Table Section -->
+    <div class="card-modern">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-bold text-secondary">Endpoint History</h6>
+            <span class="badge badge-soft-dark">Showing latest 5 records</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-modern mb-0 align-middle">
+                <thead>
+                    <tr id="table-header">
+                        <!-- Header injected by JS -->
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <!-- Body injected by JS -->
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer d-flex justify-content-end gap-2">
+            <button class="btn btn-sm btn-outline-secondary">Previous</button>
+            <button class="btn btn-sm btn-outline-secondary">Next</button>
+        </div>
+    </div>
+</div>
 {{end}}
 
 {{define "scripts"}}
  <script>
     function switchTab(tabName) {
-        // 1. Style Buttons
-            const btnEnd = document.getElementById('tab-endpoint');
-            const btnAlert = document.getElementById('tab-alert');
+        const btnEnd = document.getElementById('tab-endpoint');
+        const btnAlert = document.getElementById('tab-alert');
+        
+        if (tabName === 'endpoint') {
+            btnEnd.classList.add('active');
             
-            const activeClass = "border-theme-red text-theme-red font-bold";
-            const inactiveClass = "border-transparent text-gray-500 font-medium";
-
-            if (tabName === 'endpoint') {
-                btnEnd.className = btnEnd.className.replace(inactiveClass, activeClass);
-                btnAlert.className = btnAlert.className.replace(activeClass, inactiveClass);
-                
-                // Update Content
-                document.getElementById('table-title').innerText = "Endpoint History Log";
+            btnAlert.classList.remove('active');
+            
+            document.getElementById('table-title').innerText = "Endpoint Status";
+            if(typeof endpointData !== 'undefined') {
                 initChart(endpointData.chart);
-                // Update Center Text explicitly
                 document.getElementById('center-number').innerText = endpointData.centerText;
                 document.getElementById('center-label').innerText = endpointData.centerLabel;
                 renderCards(endpointData.cards);
                 renderTable(endpointData.tableHeader, endpointData.tableRows);
-                
-            } else {
-                btnAlert.className = btnAlert.className.replace(inactiveClass, activeClass);
-                btnEnd.className = btnEnd.className.replace(activeClass, inactiveClass);
+            }
 
-                // Update Content
-                document.getElementById('table-title').innerText = "Security Alert Log";
+        } else {
+            btnAlert.classList.add('active');
+
+            btnEnd.classList.remove('active');
+
+            document.getElementById('table-title').innerText = "Alert Monitor";
+            if(typeof alertData !== 'undefined') {
                 initChart(alertData.chart);
-                 // Update Center Text explicitly
-                 document.getElementById('center-number').innerText = alertData.centerText;
+                document.getElementById('center-number').innerText = alertData.centerText;
                 document.getElementById('center-label').innerText = alertData.centerLabel;
                 renderCards(alertData.cards);
                 renderTable(alertData.tableHeader, alertData.tableRows);
             }
+        }
     }
-  
  </script>
 {{end}}

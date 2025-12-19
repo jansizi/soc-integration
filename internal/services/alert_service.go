@@ -21,6 +21,7 @@ const (
 
 type AlertService interface {
 	ProcessWazuhAlert(alert models.WazuhAlert) error
+	GetCases(page, pageSize int) ([]models.DisplayCase, *models.Pagination, error)
 }
 
 type alertService struct {
@@ -125,6 +126,106 @@ func (s *alertService) ProcessWazuhAlert(alert models.WazuhAlert) error {
 	}
 
 	return nil
+}
+
+func (s *alertService) GetCases(page, pageSize int) ([]models.DisplayCase, *models.Pagination, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
+
+	pagination := &models.Pagination{
+		CurrentPage: page,
+		PageSize:    pageSize,
+	}
+
+	// คำนวณ Pagination
+	from := pagination.GetOffset()
+	to := from + pageSize
+
+	// 1. ดึงข้อมูล Case (Query Data)
+	query := map[string]interface{}{
+		"query": []interface{}{
+			map[string]string{"_name": "listCase"},
+			map[string]interface{}{"_name": "sort", "_fields": []map[string]string{{"startDate": "desc"}}},
+			map[string]interface{}{"_name": "page", "from": from, "to": to},
+		},
+	}
+	jsonData, err := json.Marshal(query)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	req, err := http.NewRequest("POST", TheHiveURL+"/api/v1/query", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+TheHiveAPIKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return nil, nil, fmt.Errorf("failed to fetch cases: %s", resp.Status)
+	}
+
+	type hiveCaseResp struct {
+		ID        string `json:"_id"`
+		CaseID    int    `json:"caseId"`
+		Title     string `json:"title"`
+		Severity  int    `json:"severity"`
+		Status    string `json:"status"`
+		StartDate int64  `json:"startDate"`
+	}
+
+	var apiCases []hiveCaseResp
+	if err := json.NewDecoder(resp.Body).Decode(&apiCases); err != nil {
+		return nil, nil, err
+	}
+
+	var displayCases []models.DisplayCase
+	for _, c := range apiCases {
+		t := time.UnixMilli(c.StartDate)
+		displayCases = append(displayCases, models.DisplayCase{
+			CaseId:   c.CaseID,
+			Title:    c.Title,
+			Severity: c.Severity,
+			Status:   c.Status,
+			Date:     t.Format("02 Jan 2006 15:04"),
+			Link:     fmt.Sprintf("%s/index.html#!/case/%s/details", TheHiveURL, c.ID),
+		})
+	}
+
+	// 2. ดึงจำนวนทั้งหมด (Query Count)
+	var totalCount int64
+	queryCount := map[string]interface{}{
+		"query": []interface{}{
+			map[string]string{"_name": "listCase"},
+			map[string]string{"_name": "count"},
+		},
+	}
+	jsonDataCount, _ := json.Marshal(queryCount)
+	reqCount, _ := http.NewRequest("POST", TheHiveURL+"/api/v1/query", bytes.NewBuffer(jsonDataCount))
+	reqCount.Header.Set("Authorization", "Bearer "+TheHiveAPIKey)
+	reqCount.Header.Set("Content-Type", "application/json")
+
+	respCount, err := client.Do(reqCount)
+	if err == nil {
+		defer respCount.Body.Close()
+		if respCount.StatusCode == 200 {
+			json.NewDecoder(respCount.Body).Decode(&totalCount)
+		}
+	}
+
+	pagination.TotalItems = totalCount
+	return displayCases, pagination, nil
 }
 
 func (s *alertService) createTheHiveCase(theHiveCase models.TheHiveCase) (string, error) {
