@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"net/http"
+	"net/httpdvd"
 
 	"github.com/jansizi/soc-integration/internal/models"
 	"github.com/jansizi/soc-integration/internal/services"
