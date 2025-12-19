@@ -3,7 +3,8 @@ package models
 type TheHiveCase struct {
 	Title       string   `json:"title"`
 	Description string   `json:"description"`
-	Serverity   int      `json:"severity"`
+	Severity    int      `json:"severity"`
+	Type        string   `json:"type"`
 	StartDate   int64    `json:"startDate"`
 	Tags        []string `json:"tags"`
 	TLP         int      `json:"tlp"`

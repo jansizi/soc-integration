@@ -7,14 +7,15 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/jansizi/soc-integration/internal/models"
 )
 
 const (
-	TheHiveURL     = "http://192.168.150.134:9000/thehive"
-	TheHiveAPIKey  = "HVpVvsiZSEAdvIulVdLYZxSOoB9MfKMS"
+	TheHiveURL     = "http://192.168.150.136:9000"
+	TheHiveAPIKey  = "gsMDvRCUag/1Q07pNnHzRPZLgM8OnuAG"
 	CortexServerID = "cortex1"
 )
 
@@ -48,9 +49,22 @@ func (s *alertService) ProcessWazuhAlert(alert models.WazuhAlert) error {
 		hiveSeverity = 3
 	}
 
-	tags := []string{"wazuh", "automated", alert.Agent.Name}
+	//	tags := []string{"wazuh", "automated", alert.Agent.Name}
+	tags := []string{"wazuh", "automated"}
+	if alert.Agent.Name != "" {
+		cleanName := strings.TrimSpace(alert.Agent.Name)
+		cleanName = strings.ReplaceAll(cleanName, "\n", "")
+		cleanName = strings.ReplaceAll(cleanName, "\r", "")
+		// TheHive จำกัดความยาว Tag ที่ 128 ตัวอักษร
+		if len(cleanName) > 128 {
+			cleanName = cleanName[:128]
+		}
+		if cleanName != "" {
+			tags = append(tags, cleanName)
+		}
+	}
 
-	if alert.Data.SrcIP != "" && alert.Data.SrcIP >= "5" {
+	if alert.Data.SrcIP != "" {
 		isMalicious, err := s.mispService.CheckIP(alert.Data.SrcIP)
 		if err != nil {
 			fmt.Printf("Error checking IP in MISP: %v\n", err)
@@ -65,12 +79,13 @@ func (s *alertService) ProcessWazuhAlert(alert models.WazuhAlert) error {
 	newCase := models.TheHiveCase{
 		Title:       caseTitle,
 		Description: caseDesc,
-		Serverity:   hiveSeverity,
+		Severity:    hiveSeverity,    // แก้คำผิดจาก Serverity เป็น Severity
+		Type:        "Investigation", // TheHive 5 บังคับต้องมี Type
 		StartDate:   time.Now().UnixMilli(),
 		Tags:        tags,
 		TLP:         2,
 		PAP:         2,
-		Status:      "Open",
+		Status:      "New",
 		Owner:       "admin",
 	}
 
@@ -82,7 +97,7 @@ func (s *alertService) ProcessWazuhAlert(alert models.WazuhAlert) error {
 	fmt.Printf("\nCase created! ID: %s\n", caseID)
 
 	if alert.Data.SrcIP != "" {
-		fmt.Print("Found Attacker IP", alert.Data.SrcIP)
+		fmt.Printf("Found Attacker IP: %s\n", alert.Data.SrcIP)
 
 		obs := models.TheHiveObservable{
 			DataType: "ip",
@@ -118,7 +133,7 @@ func (s *alertService) createTheHiveCase(theHiveCase models.TheHiveCase) (string
 		return "", err
 	}
 
-	req, err := http.NewRequest("POST", TheHiveURL+"/api/case", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", TheHiveURL+"/api/v1/case", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", err
 	}
@@ -145,6 +160,9 @@ func (s *alertService) createTheHiveCase(theHiveCase models.TheHiveCase) (string
 	if id, ok := responseMap["id"].(string); ok {
 		return id, nil
 	}
+	if id, ok := responseMap["_id"].(string); ok {
+		return id, nil
+	}
 	if id, ok := responseMap["caseId"].(string); ok {
 		return id, nil
 	}
@@ -157,7 +175,7 @@ func (s *alertService) createTheHiveObservable(caseID string, observable models.
 		return "", err
 	}
 
-	url := fmt.Sprintf("%s/api/case/%s/artifact", TheHiveURL, url.PathEscape(caseID))
+	url := fmt.Sprintf("%s/api/v1/case/%s/observable", TheHiveURL, url.PathEscape(caseID))
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -176,13 +194,15 @@ func (s *alertService) createTheHiveObservable(caseID string, observable models.
 	bodyBytes, _ := io.ReadAll(resp.Body)
 
 	if resp.StatusCode != 200 && resp.StatusCode != 201 {
-		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("atatus: %s, reason: %s", resp.Status, string(body))
+		return "", fmt.Errorf("status: %s, reason: %s", resp.Status, string(bodyBytes))
 	}
 
 	var responseArray []map[string]interface{}
 	if err := json.Unmarshal(bodyBytes, &responseArray); err == nil && len(responseArray) > 0 {
 		if id, ok := responseArray[0]["id"].(string); ok {
+			return id, nil
+		}
+		if id, ok := responseArray[0]["_id"].(string); ok {
 			return id, nil
 		}
 	}
@@ -192,6 +212,9 @@ func (s *alertService) createTheHiveObservable(caseID string, observable models.
 		if id, ok := responseObj["id"].(string); ok {
 			return id, nil
 		}
+		if id, ok := responseObj["_id"].(string); ok {
+			return id, nil
+		}
 	}
 
 	return "", nil
@@ -199,13 +222,13 @@ func (s *alertService) createTheHiveObservable(caseID string, observable models.
 
 func (s *alertService) runAnalyzer(artifactID string, analyzerID string) error {
 	payload := map[string]string{
-		"cortexId":   CortexServerID,
-		"artifactId": artifactID,
-		"analyzerId": analyzerID,
+		"cortexId":     CortexServerID,
+		"observableId": artifactID, // TheHive 5 ใช้ observableId แทน artifactId
+		"analyzerId":   analyzerID,
 	}
 	jsonData, _ := json.Marshal(payload)
 
-	url := TheHiveURL + "/api/connector/cortex/job"
+	url := TheHiveURL + "/api/v1/connector/cortex/job"
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
