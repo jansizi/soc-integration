@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	mispURL    = "https://192.168.150.134:8443"
-	mispAPIKey = "ZGZLNuc97A2Y9TcBWTe5ZNUx2YDxnpBgxONQGtoQ"
+	mispURL    = "https://192.168.150.136:8443"
+	mispAPIKey = "dJ2QrZjyE452yCsiFmDT9FmVS04EZd0wxtTrRtBf"
 )
 
 type MISPService interface {

@@ -71,7 +71,6 @@ func (s *alertService) ProcessWazuhAlert(alert models.WazuhAlert) error {
 			fmt.Printf("Error checking IP in MISP: %v\n", err)
 		}
 		if isMalicious {
-			fmt.Println("ALERT! IP found in MISP Database! Escalating priority...")
 			tags = append(tags, "MISP-DETECTED", "THREAT-INTEL")
 			hiveSeverity = 3
 		}
@@ -80,8 +79,8 @@ func (s *alertService) ProcessWazuhAlert(alert models.WazuhAlert) error {
 	newCase := models.TheHiveCase{
 		Title:       caseTitle,
 		Description: caseDesc,
-		Severity:    hiveSeverity,    // แก้คำผิดจาก Serverity เป็น Severity
-		Type:        "Investigation", // TheHive 5 บังคับต้องมี Type
+		Severity:    hiveSeverity,
+		Type:        "Investigation",
 		StartDate:   time.Now().UnixMilli(),
 		Tags:        tags,
 		TLP:         2,
@@ -97,15 +96,27 @@ func (s *alertService) ProcessWazuhAlert(alert models.WazuhAlert) error {
 	}
 	fmt.Printf("\nCase created! ID: %s\n", caseID)
 
-	if alert.Data.SrcIP != "" {
-		fmt.Printf("Found Attacker IP: %s\n", alert.Data.SrcIP)
+	// ตรวจสอบหา IP สำหรับสร้าง Observable
+	// 1. ลองหาจาก Attacker IP (data.srcip) ก่อน
+	targetIP := alert.Data.SrcIP
+	tag := "attacker"
+
+	// 2. ถ้าไม่มี Attacker IP ให้ใช้ Agent IP แทน (เพื่อให้มี Observable ไปยิง Cortex ได้)
+	if targetIP == "" && alert.Agent.IP != "" {
+		targetIP = alert.Agent.IP
+		tag = "agent-victim"
+		fmt.Println("No Source IP found. Using Agent IP for Observable.")
+	}
+
+	if targetIP != "" {
+		fmt.Printf("Creating Observable for IP: %s\n", targetIP)
 
 		obs := models.TheHiveObservable{
 			DataType: "ip",
-			Data:     alert.Data.SrcIP,
+			Data:     targetIP,
 			TLP:      2,
 			//PAP:      2,
-			Tags:    []string{"attacker", "wazuh-detected"},
+			Tags:    []string{tag, "wazuh-detected"},
 			Message: "Detected Source IP from Wazuh Alert",
 		}
 
@@ -323,9 +334,9 @@ func (s *alertService) createTheHiveObservable(caseID string, observable models.
 
 func (s *alertService) runAnalyzer(artifactID string, analyzerID string) error {
 	payload := map[string]string{
-		"cortexId":     CortexServerID,
-		"observableId": artifactID, // TheHive 5 ใช้ observableId แทน artifactId
-		"analyzerId":   analyzerID,
+		"cortexId":   CortexServerID,
+		"artifactId": artifactID, // API ต้องการ artifactId (แม้จะเป็น TheHive 5 ก็ตามสำหรับ endpoint นี้)
+		"analyzerId": analyzerID,
 	}
 	jsonData, _ := json.Marshal(payload)
 
