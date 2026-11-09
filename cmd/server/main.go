@@ -19,13 +19,13 @@ func main() {
 	// 2. Setup Router
 	r := gin.Default()
 
-	// Group API ให้ดูสวยงาม (เหมือน Route Prefix)
+	// Group API
 	api := r.Group("/api")
 	{
 		api.POST("/wazuh", wazuhHandler.ReceiveAlert)
 	}
 
 	// 3. Start Server
-	fmt.Println("🚀 SOC Integration API is running on :8080")
+	fmt.Println("SOC Integration API is running on :8080")
 	r.Run(":8080")
 }
