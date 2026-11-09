@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	TheHiveURL     = "http://192.168.150.134:9000/thehive"
+	TheHiveURL     = "http://xxx.xxx.xxx.xx:9000/thehive"
 	TheHiveAPIKey  = "HVpVvsiZSEAdvIulVdLYZxSOoB9MfKMS"
 	CortexServerID = "cortex1"
 )
