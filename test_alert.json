@@ -8,7 +8,7 @@
   "agent": {
     "id": "001",
     "name": "ubuntu-srv",
-    "ip": "192.168.1.5"
+    "ip": "xxx.xxx.xx.xx"
   },
   "data": {
     "srcip": "1.2.3.4"
