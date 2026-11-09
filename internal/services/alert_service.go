@@ -14,7 +14,7 @@ import (
 
 const (
 	TheHiveURL     = "http://xxx.xxx.xxx.xx:9000/thehive"
-	TheHiveAPIKey  = "HVpVvsiZSEAdvIulVdLYZxSOoB9MfKMS"
+	TheHiveAPIKey  = ""
 	CortexServerID = "cortex1"
 )
 
